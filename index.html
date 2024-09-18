@@ -1,0 +1,371 @@
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberDEVAtackTools - Interfaz de Hacking Multidimensional</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Roboto Mono', monospace;
+    background-color: #000;
+    color: #0f0;
+    overflow: hidden;
+  }
+  #container {
+    display: grid;
+    grid-template-columns: 200px 1fr 300px;
+    grid-template-rows: 60px 1fr 200px;
+    height: 100vh;
+  }
+  #header {
+    grid-column: 1 / 4;
+    background-color: #111;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #sidebar {
+    background-color: #0a0a0a;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  #main {
+    background-color: #050505;
+    padding: 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  #right-panel {
+    background-color: #0a0a0a;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  #console {
+    grid-column: 1 / 4;
+    background-color: #000;
+    border-top: 1px solid #0f0;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    overflow-y: auto;
+  }
+  .button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #0f0;
+    color: #000;
+    border: none;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+  }
+  .button:hover {
+    background-color: #00ff00;
+    box-shadow: 0 0 10px #0f0;
+  }
+  #network-map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .node {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #0f0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .node:hover {
+    box-shadow: 0 0 15px #0f0;
+  }
+  .link {
+    position: absolute;
+    height: 2px;
+    background-color: #0f0;
+    transform-origin: 0 0;
+    opacity: 0.5;
+  }
+  #tools-panel {
+    margin-top: 20px;
+  }
+  .tool {
+    margin-bottom: 10px;
+    padding: 5px;
+    background-color: #111;
+    border: 1px solid #0f0;
+    cursor: pointer;
+  }
+  #mission-panel {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #111;
+    border: 1px solid #0f0;
+  }
+  #input-command {
+    width: calc(100% - 20px);
+    padding: 10px;
+    background-color: #000;
+    border: 1px solid #0f0;
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+  }
+  .tool-active {
+    background-color: #0f0;
+    color: #000;
+  }
+  #connection-status {
+    font-weight: bold;
+    transition: color 0.3s ease;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="header">
+    <h1>CyberDEVAtackTools</h1>
+    <div id="status">Estado: <span id="connection-status">En proceso de hacking</span></div>
+  </div>
+  <div id="sidebar">
+    <button class="button" onclick="initiateAttack()">Iniciar Ataque</button>
+    <button class="button" onclick="scanNetwork()">Escanear Red</button>
+    <button class="button" onclick="deployVirus()">Desplegar Virus</button>
+    <button class="button" onclick="crackFirewall()">Romper Firewall</button>
+    <div id="tools-panel">
+      <h3>Herramientas Disponibles</h3>
+      <div class="tool" onclick="activateTool(this)" id="tool1">Sniffer de Paquetes</div>
+      <div class="tool" onclick="activateTool(this)" id="tool2">Generador de Exploits</div>
+      <div class="tool" onclick="activateTool(this)" id="tool3">Analizador de Vulnerabilidades</div>
+    </div>
+  </div>
+  <div id="main">
+    <div id="network-map"></div>
+  </div>
+  <div id="right-panel">
+    <h3>Misiones Activas</h3>
+    <div id="mission-panel">
+      <p>Infiltración en Servidor Corporativo</p>
+      <progress value="30" max="100"></progress>
+    </div>
+    <h3>Logs del Sistema</h3>
+    <div id="system-logs" style="height: 200px; overflow-y: scroll; background-color: #111; padding: 10px;">
+      [Sistema] Iniciando servicios...
+    </div>
+  </div>
+  <div id="console">
+    <div id="output"></div>
+    <input type="text" id="input-command" placeholder="Ingrese comando avanzado..." onkeypress="handleCommand(event)">
+  </div>
+</div>
+
+<script>
+const output = document.getElementById('output');
+const inputCommand = document.getElementById('input-command');
+const networkMap = document.getElementById('network-map');
+const systemLogs = document.getElementById('system-logs');
+const connectionStatus = document.getElementById('connection-status');
+
+let nodes = [];
+let links = [];
+let activeTool = null;
+
+function addOutput(text) {
+  output.innerHTML += `<div>> ${text}</div>`;
+  output.scrollTop = output.scrollHeight;
+}
+
+function updateSystemLog(text) {
+  const now = new Date().toLocaleTimeString();
+  systemLogs.innerHTML += `<div>[${now}] ${text}</div>`;
+  systemLogs.scrollTop = systemLogs.scrollHeight;
+}
+
+function createNode(x, y) {
+  const node = document.createElement('div');
+  node.className = 'node';
+  node.style.left = x + 'px';
+  node.style.top = y + 'px';
+  node.onclick = () => nodeClicked(node);
+  networkMap.appendChild(node);
+  nodes.push(node);
+  return node;
+}
+
+function createLink(node1, node2) {
+  const link = document.createElement('div');
+  link.className = 'link';
+  networkMap.appendChild(link);
+  updateLinkPosition(link, node1, node2);
+  links.push({ element: link, start: node1, end: node2 });
+}
+
+function updateLinkPosition(link, start, end) {
+  const rect1 = start.getBoundingClientRect();
+  const rect2 = end.getBoundingClientRect();
+  const angle = Math.atan2(rect2.top - rect1.top, rect2.left - rect1.left) * 180 / Math.PI;
+  const length = Math.sqrt(Math.pow(rect2.left - rect1.left, 2) + Math.pow(rect2.top - rect1.top, 2));
+  
+  link.style.width = `${length}px`;
+  link.style.left = `${rect1.left + 10}px`;
+  link.style.top = `${rect1.top + 10}px`;
+  link.style.transform = `rotate(${angle}deg)`;
+}
+
+function nodeClicked(node) {
+  addOutput(`Nodo seleccionado en (${node.style.left}, ${node.style.top})`);
+  updateSystemLog(`Analizando nodo en ${node.style.left}, ${node.style.top}`);
+  
+  if (activeTool) {
+    executeTool(activeTool, node);
+  }
+}
+
+function activateTool(toolElement) {
+  if (activeTool) {
+    activeTool.classList.remove('tool-active');
+  }
+  toolElement.classList.add('tool-active');
+  activeTool = toolElement;
+  addOutput(`Herramienta ${toolElement.textContent} activada. Haga clic en un nodo para aplicar.`);
+  updateSystemLog(`${toolElement.textContent} preparada para uso.`);
+}
+
+function executeTool(tool, node) {
+  switch(tool.id) {
+    case 'tool1':
+      addOutput(`Ejecutando Sniffer de Paquetes en nodo (${node.style.left}, ${node.style.top})`);
+      updateSystemLog(`Sniffer desplegado. Analizando tráfico...`);
+      node.style.boxShadow = '0 0 15px #00ffff';
+      setTimeout(() => { node.style.boxShadow = ''; }, 3000);
+      break;
+    case 'tool2':
+      addOutput(`Generando Exploit para nodo (${node.style.left}, ${node.style.top})`);
+      updateSystemLog(`Exploit generado. Preparando payload...`);
+      node.style.backgroundColor = '#ff0000';
+      setTimeout(() => { node.style.backgroundColor = '#0f0'; }, 2000);
+      break;
+    case 'tool3':
+      addOutput(`Analizando Vulnerabilidades en nodo (${node.style.left}, ${node.style.top})`);
+      updateSystemLog(`Escaneo de vulnerabilidades en progreso...`);
+      let vulnCount = Math.floor(Math.random() * 5) + 1;
+      setTimeout(() => { 
+        addOutput(`Se encontraron ${vulnCount} vulnerabilidades.`);
+        updateSystemLog(`Análisis completo. ${vulnCount} vulnerabilidades detectadas.`);
+      }, 3000);
+      break;
+  }
+}
+
+function updateConnectionStatus(status, color) {
+  connectionStatus.textContent = status;
+  connectionStatus.style.color = color;
+}
+
+function initiateAttack() {
+  addOutput("Iniciando secuencia de ataque...");
+  updateSystemLog("Ataque iniciado. Preparando vectores.");
+  updateConnectionStatus("En proceso de hacking", "#ffaa00");
+}
+
+function scanNetwork() {
+  addOutput("Escaneando red en busca de objetivos...");
+  updateSystemLog("Escaneo de red en progreso.");
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const node = createNode(Math.random() * (networkMap.clientWidth - 40) + 20, 
+                              Math.random() * (networkMap.clientHeight - 40) + 20);
+      if (nodes.length > 1) {
+        createLink(nodes[Math.floor(Math.random() * (nodes.length - 1))], node);
+      }
+      updateSystemLog(`Nodo descubierto: ${node.style.left}, ${node.style.top}`);
+    }, i * 1000);
+  }
+}
+
+function deployVirus() {
+  addOutput("Desplegando virus en la red objetivo...");
+  updateSystemLog("Virus desplegado. Monitoreando propagación.");
+  nodes.forEach(node => {
+    node.style.backgroundColor = "#ff0000";
+    setTimeout(() => node.style.backgroundColor = "#0f0", 2000);
+  });
+}
+
+function crackFirewall() {
+  addOutput("Iniciando proceso de ruptura de firewall...");
+  updateSystemLog("Analizando estructura del firewall.");
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 10;
+    addOutput(`Progreso de ruptura: ${progress}%`);
+    if (progress >= 100) {
+      clearInterval(interval);
+      addOutput("Firewall comprometido. Acceso concedido.");
+      updateSystemLog("Firewall desactivado. Sistema vulnerable.");
+    }
+  }, 1000);
+}
+
+function handleCommand(event) {
+  if (event.key === 'Enter') {
+    const command = inputCommand.value;
+    addOutput(command);
+    processCommand(command);
+    inputCommand.value = '';
+  }
+}
+
+function processCommand(command) {
+  switch(command.toLowerCase()) {
+    case 'help':
+      addOutput("Comandos disponibles: scan, attack, status, clear, tool1, tool2, tool3");
+      break;
+    case 'scan':
+      scanNetwork();
+      break;
+    case 'attack':
+      initiateAttack();
+      break;
+    case 'status':
+      addOutput(`Estado actual: ${connectionStatus.textContent}`);
+      break;
+    case 'clear':
+      output.innerHTML = '';
+      break;
+    case 'tool1':
+    case 'tool2':
+    case 'tool3':
+      activateTool(document.getElementById(command.toLowerCase()));
+      break;
+    default:
+      addOutput("Comando no reconocido. Utilice 'help' para ver la lista de comandos.");
+  }
+}
+
+// Inicialización
+addOutput("Bienvenido a CyberDEVAtackTools - Sistema de Hacking Multidimensional");
+addOutput("Utilice los botones, herramientas o ingrese comandos para comenzar.");
+updateSystemLog("Sistema inicializado. Esperando instrucciones.");
+updateConnectionStatus("Desconectado", "#ff0000");
+
+// Crear red inicial
+for (let i = 0; i < 3; i++) {
+  createNode(Math.random() * (networkMap.clientWidth - 40) + 20, 
+             Math.random() * (networkMap.clientHeight - 40) + 20);
+}
+for (let i = 0; i < 2; i++) {
+  createLink(nodes[i], nodes[i+1]);
+}
+
+// Actualizar posición de enlaces en caso de redimensionamiento
+window.onresize = () => {
+  links.forEach(link => updateLinkPosition(link.element, link.start, link.end));
+};
+</script>
+</body></html>
